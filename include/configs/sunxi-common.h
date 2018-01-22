@@ -148,11 +148,19 @@
 #endif
 
 #if defined(CONFIG_ENV_IS_IN_MMC)
-#define CONFIG_SYS_MMC_ENV_DEV		0	/* first detected MMC controller */
+/* #define CONFIG_SYS_MMC_ENV_DEV		0	/1* first detected MMC controller *1/ */
 #define CONFIG_SYS_MMC_MAX_DEVICE	4
 #elif defined(CONFIG_ENV_IS_NOWHERE)
 #define CONFIG_ENV_SIZE			(128 << 10)
 #endif
+
+/*
+ * Needed for Mender
+ */
+#define CONFIG_BOOTCOUNT_LIMIT
+#define CONFIG_BOOTCOUNT_ENV
+#define CONFIG_ENV_SIZE 0x20000
+#undef CONFIG_ENV_OFFSET
 
 #ifndef CONFIG_MACH_SUN8I_V3S
 /* 64MB of malloc() pool */
