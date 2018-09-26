@@ -261,6 +261,74 @@ u32 spl_boot_mode(const u32 boot_device)
 	return MMCSD_MODE_RAW;
 }
 
+#ifdef CONFIG_SPL_BUILD
+#define SPL_MEM_TEST
+#define SPL_MEM_TEST_ITERATION (1)
+#define SPL_MEM_TEST_START (0x49000000)
+#define SPL_MEM_TEST_STOP (0x4A000000)
+#define SPL_MEM_TEST_PATTERN (0x55aa)
+static inline void *map_sysmem(phys_addr_t paddr, unsigned long len)
+{
+	return (void *)(uintptr_t)paddr;
+}
+
+ulong mem_test_quick(vu_long *buf, ulong start_addr, ulong end_addr,
+			    vu_long pattern, volatile int iteration)
+{
+	vu_long *end;
+	vu_long *addr;
+	ulong errs = 0;
+	ulong incr, length;
+	ulong val, readback;
+
+	incr = 1;
+	length = (end_addr - start_addr) / sizeof(ulong);
+	end = buf + length;
+	pattern=0x55aa;
+	printf("Pattern %lx  Writing...", pattern);
+
+	for (addr = buf, val = pattern; addr < end; addr++) {
+		*addr = val;
+		val += incr;
+	}
+
+	puts("Reading...");
+
+	for (addr = buf, val = pattern; addr < end; addr++) {
+		readback = *addr;
+		if (readback != val) {
+			ulong offset = addr - buf;
+
+			printf("\nMem error @ 0x%x(%lx+4*%ld): "
+				"found 0x%lx, expected 0x%lx(0x55aa+%ld)\n",
+				(uint)(uintptr_t)(start_addr + offset*sizeof(vu_long)), start_addr, offset,
+				readback, val, offset);
+			hang();
+			errs++;
+		}
+		val += incr;
+	}
+	printf("OK\n");
+
+	return errs;
+}
+
+void spl_mem_test(void)
+{
+	ulong start, end;
+	vu_long *buf;
+	start = SPL_MEM_TEST_START;
+	end = SPL_MEM_TEST_STOP;
+	buf = map_sysmem(start, end - start);
+	int iteration;
+
+	for (iteration = 0; iteration < SPL_MEM_TEST_ITERATION; iteration++) {
+		printf("memory test: %d\n", iteration + 1);
+		mem_test_quick(buf, start, end, SPL_MEM_TEST_PATTERN, iteration);
+	}
+}
+#endif
+
 void board_init_f(ulong dummy)
 {
 	spl_init();
@@ -271,6 +339,9 @@ void board_init_f(ulong dummy)
 	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
 #endif
 	sunxi_board_init();
+#ifdef CONFIG_SPL_BUILD
+  spl_mem_test();
+#endif
 }
 #endif
 

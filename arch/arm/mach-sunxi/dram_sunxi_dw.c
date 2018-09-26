@@ -735,8 +735,10 @@ unsigned long sunxi_dram_init(void)
 #endif
 
 	mctl_sys_init(socid, &para);
+  udelay(1000*100);
 	if (mctl_channel_init(socid, &para))
 		return 0;
+  udelay(1000*100);
 
 	if (para.dual_rank)
 		writel(0x00000303, &mctl_ctl->odtmap);
